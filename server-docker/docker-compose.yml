@@ -1,0 +1,75 @@
+version: "3.8"
+services:
+    web1wordpress:
+        container_name: web1wordpress
+        image: wordpress:php8.1-apache
+        restart: always
+        stdin_open: true
+        tty: true
+        environment:
+            WORDPRESS_DB_HOST: db:3306
+            WORDPRESS_DB_USER: user1
+            WORDPRESS_DB_PASSWORD: password
+            WORDPRESS_DB_NAME: word1base
+        volumes:
+            - ./html/web1:/var/www/html
+    web2wordpress:
+        container_name: web2wordpress
+        image: wordpress:php8.1-apache
+        restart: always
+        stdin_open: true
+        tty: true
+        environment:
+            WORDPRESS_DB_HOST: db:3306
+            WORDPRESS_DB_USER: user2
+            WORDPRESS_DB_PASSWORD: password
+            WORDPRESS_DB_NAME: word2base
+        volumes:
+            - ./html/web2:/var/www/html
+    nginx:
+        container_name: nginx
+        image: nginx:latest
+        restart: unless-stopped
+        ports:
+            - 80:80
+            - 443:443
+        volumes:
+            - ./nginx/conf:/etc/nginx/conf.d
+            - ./certbot/conf:/etc/nginx/ssl
+            - ./html:/var/www/html
+    web1certbot:
+        container_name: web1certbot
+        image: certbot/certbot:latest
+        command: certonly --webroot --webroot-path=/var/www/html --email andres@negociapp.com --agree-tos --no-eff-email -d web1.com -d www.web1.com
+        volumes:
+            - ./certbot/conf:/etc/letsencrypt
+            - ./certbot/logs:/var/log/letsencrypt
+            - ./html/web2:/var/www/html
+    web2certbot:
+        container_name: web2certbot
+        image: certbot/certbot:latest
+        command: certonly --webroot --webroot-path=/var/www/html --email andres@negociapp.com --agree-tos --no-eff-email -d web2.com -d www.web2.com
+        volumes:
+            - ./certbot/conf:/etc/letsencrypt
+            - ./certbot/logs:/var/log/letsencrypt
+            - ./html:/var/www/html
+    db:
+        image: mariadb
+        container_name: mariadb
+        restart: always
+        ports:
+            - '3306:3306'
+        environment:
+            MYSQL_ROOT_PASSWORD: pass_root_mysql
+        volumes:
+            - ./db_data:/var/lib/mysql
+    phpmyadmin:
+        depends_on:
+            - db
+        image: phpmyadmin/phpmyadmin
+        container_name: phpmyadmin
+        restart: always
+        ports:
+            - '8181:80'
+        environment:
+            PMA_HOST: db
